@@ -44,14 +44,11 @@ public class ProxyHandler {
         if (fileName.toLowerCase().endsWith("m3u8")) {
             mediaType = M3U8;
 
-            dataBufferFlux = retrieve.bodyToMono(DataBuffer.class)
-                                     .flatMapMany(dataBuffer -> {
+            dataBufferFlux = retrieve.bodyToMono(byte[].class)
+                                     .flatMapMany(bytes -> {
                                          try {
                                              URL url = new URL(urlParam);
-
-                                             String s = new String(dataBuffer.asInputStream()
-                                                                             .readAllBytes());
-
+                                             String s = new String(bytes);
                                              String[] originM3u8List = s.split("\n");
                                              StringBuilder m3u8ListStingBuilder = new StringBuilder();
                                              for (String line : originM3u8List) {
@@ -82,16 +79,28 @@ public class ProxyHandler {
             dataBufferFlux = retrieve.bodyToFlux(DataBuffer.class);
         } else {
             mediaType = TS;
-            dataBufferFlux = retrieve.bodyToFlux(DataBuffer.class);
+            dataBufferFlux = retrieve.bodyToMono(byte[].class).flatMapMany(bytes -> {
+                if (bytes.length > 10 * 1024) {
+                    return Flux.just(DefaultDataBufferFactory.sharedInstance.wrap(bytes));
+                }
+                return Flux.empty();
+            });
         }
 
-        return ServerResponse.ok()
-                             .contentType(mediaType)
-                             .body((p, a) -> {
-                                 ZeroCopyHttpOutputMessage resp = (ZeroCopyHttpOutputMessage) p;
-                                 p.getHeaders()
-                                  .add(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*");
-                                 return resp.writeWith(dataBufferFlux);
+        return dataBufferFlux.hasElements()
+                             .flatMap(t -> {
+                                 if (t) {
+                                     return ServerResponse.ok()
+                                                          .contentType(mediaType)
+                                                          .body((p, a) -> {
+                                                                      ZeroCopyHttpOutputMessage resp = (ZeroCopyHttpOutputMessage) p;
+                                                                      p.getHeaders()
+                                                                       .add(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*");
+                                                                      return resp.writeWith(dataBufferFlux);
+                                                                  }
+                                                          );
+                                 }
+                                 return ServerResponse.badRequest().build();
                              });
     }
 }
