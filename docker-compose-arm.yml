@@ -1,0 +1,23 @@
+version: '3.7'
+services:
+  cdnserver:
+    image: openjdk:17.0.2
+    container_name: cdnserver
+    volumes:
+      - /home/ubuntu/docker/cdnserver:/cdnserver
+    entrypoint: "java -jar /cdnserver/cdnserver.jar"
+    expose:
+      - "8080"
+    environment:
+      TZ: Asia/Shanghai
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "200k"
+    networks:
+      - local-network
+
+networks:
+  local-network:
+    name: local-network
