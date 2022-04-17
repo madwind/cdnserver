@@ -2,10 +2,14 @@ name: Java CI with Gradle
 
 on:
   push:
-    branches: [ master ]
+    branches:
+      - 'master'
+    tags:
+      - 'v*'
   pull_request:
-    branches: [ master ]
-
+    branches:
+      - 'master'
+      
 permissions:
   contents: read
 
@@ -16,19 +20,37 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-    - name: Set up JDK 17
+    - 
+      name: Set up JDK 17
       uses: actions/setup-java@v3
       with:
         java-version: '17'
         distribution: 'temurin'
-    - name: Setup Gradle
+    - 
+      name: Setup Gradle
       uses: gradle/gradle-build-action@v2
-    - name: Execute Gradle build
+    - 
+      name: Execute Gradle build
       run: ./gradlew bootJar
-    - name: Dump GitHub context
-      env:
-        GITHUB_CONTEXT: ${{ toJSON(github) }}
-      # 将GTIHUB的信息都打印出来，后面的脚本可以使用这些信息，例如后面的镜像TAG用的就是这里面的commitid
-      run: echo "Hello ${{ github.event.commits[0].id }}"
-    - name: Grant execute permission for gradlew
-      run: tree
+    -
+      name: Set up QEMU
+      id: qemu
+      uses: docker/setup-qemu-action@v1
+      with:
+        image: tonistiigi/binfmt:latest
+        platforms: amd64,arm64
+    -
+      name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v1
+    -
+      name: Login to DockerHub
+      uses: docker/login-action@v1 
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+    -
+      name: Build and push
+      uses: docker/build-push-action@v2
+      with:
+        push: true
+        tags: madwind/cdnserver:latest
