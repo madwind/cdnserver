@@ -52,6 +52,6 @@ jobs:
       name: Build and push
       uses: docker/build-push-action@v2
       with:
-        context: build/libs
+        context: .
         push: true
         tags: madwind/cdnserver:latest
