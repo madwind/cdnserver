@@ -2,6 +2,7 @@ package com.madwind.cdnserver.route;
 
 
 import com.madwind.cdnserver.handler.ProxyHandler;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.reactive.function.server.RouterFunction;
@@ -12,9 +13,12 @@ import static org.springframework.web.reactive.function.server.RequestPredicates
 
 @Configuration
 public class ProxyRoutesConfig {
+    @Value("${PROXY_PATH}:/")
+    String proxyPath;
+
     @Bean
     public RouterFunction<ServerResponse> proxyRoutes(ProxyHandler proxyHandler) {
         return RouterFunctions
-                .route(GET("/api/proxy/file"), proxyHandler::getFile);
+                .route(GET(proxyPath), proxyHandler::getFile);
     }
 }

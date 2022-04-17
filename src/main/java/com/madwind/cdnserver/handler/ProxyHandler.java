@@ -8,6 +8,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ZeroCopyHttpOutputMessage;
 import org.springframework.stereotype.Component;
+import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
@@ -37,6 +38,12 @@ public class ProxyHandler {
         MediaType mediaType;
         WebClient.ResponseSpec retrieve = WebClient.builder()
                                                    .baseUrl(urlParam)
+                                                   .exchangeStrategies(ExchangeStrategies.builder()
+                                                                                         .codecs(configurer ->
+                                                                                                 configurer.defaultCodecs()
+                                                                                                           .maxInMemorySize(20 * 1024 * 1024)
+                                                                                         )
+                                                                                         .build())
                                                    .build()
                                                    .get()
                                                    .retrieve();
