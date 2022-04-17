@@ -13,11 +13,12 @@ import static org.springframework.web.reactive.function.server.RequestPredicates
 
 @Configuration
 public class ProxyRoutesConfig {
-    @Value("${PROXY_PATH}:/")
+    @Value("${PROXY_PATH:/}")
     String proxyPath;
 
     @Bean
     public RouterFunction<ServerResponse> proxyRoutes(ProxyHandler proxyHandler) {
+        System.out.println(proxyPath);
         return RouterFunctions
                 .route(GET(proxyPath), proxyHandler::getFile);
     }
