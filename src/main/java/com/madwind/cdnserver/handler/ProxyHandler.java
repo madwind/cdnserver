@@ -121,7 +121,7 @@ public class ProxyHandler {
                                                                        .add(HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS, "Cache-Time");
                                                                       p.getHeaders()
                                                                        .add("Cache-Time", String.valueOf(Duration.between(start, LocalDateTime.now())
-                                                                                                                 .getNano()));
+                                                                                                                 .getNano() / 1000000));
                                                                       return resp.writeWith(dataBufferFlux);
                                                                   }
                                                           );
