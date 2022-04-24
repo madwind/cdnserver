@@ -17,8 +17,6 @@ import reactor.core.publisher.Mono;
 
 import java.io.IOException;
 import java.net.URL;
-import java.time.Duration;
-import java.time.LocalDateTime;
 import java.util.Random;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -37,7 +35,7 @@ public class ProxyHandler {
                                        .orElseThrow();
         String testParam = serverRequest.queryParam("test")
                                         .orElse(null);
-        LocalDateTime start = LocalDateTime.now();
+        long start = System.currentTimeMillis();
         logger.info("proxy: {}", urlParam);
         String fileName = urlParam.substring(urlParam.lastIndexOf('/') + 1);
 
@@ -120,8 +118,7 @@ public class ProxyHandler {
                                                                       p.getHeaders()
                                                                        .add(HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS, "Cache-Time");
                                                                       p.getHeaders()
-                                                                       .add("Cache-Time", String.valueOf(Duration.between(start, LocalDateTime.now())
-                                                                                                                 .getNano() / 1000000));
+                                                                       .add("Cache-Time", String.valueOf(System.currentTimeMillis() - start));
                                                                       return resp.writeWith(dataBufferFlux);
                                                                   }
                                                           );
