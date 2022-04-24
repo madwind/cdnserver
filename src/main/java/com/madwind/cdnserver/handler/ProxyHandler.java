@@ -4,7 +4,6 @@ import com.madwind.cdnserver.proxy.ProxyData;
 import com.madwind.cdnserver.proxy.TS;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.ZeroCopyHttpOutputMessage;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.server.ServerRequest;
@@ -18,7 +17,6 @@ public class ProxyHandler {
     public Mono<ServerResponse> getFile(ServerRequest serverRequest) {
         String urlParam = serverRequest.queryParam("url")
                                        .orElseThrow();
-        long start = System.currentTimeMillis();
         logger.info("proxy: {}", urlParam);
         String fileName = urlParam.substring(urlParam.lastIndexOf('/') + 1);
         String extendName = fileName.substring(fileName.lastIndexOf('.') + 1);
@@ -38,12 +36,6 @@ public class ProxyHandler {
                              .contentType(finalProxyData.getMediaType())
                              .body((p, a) -> {
                                          ZeroCopyHttpOutputMessage resp = (ZeroCopyHttpOutputMessage) p;
-                                         p.getHeaders()
-                                          .add(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*");
-                                         p.getHeaders()
-                                          .add(HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS, "Cache-Time");
-                                         p.getHeaders()
-                                          .add("Cache-Time", String.valueOf(System.currentTimeMillis() - start));
                                          return resp.writeWith(finalProxyData.getDataBufferFlux());
                                      }
                              );
