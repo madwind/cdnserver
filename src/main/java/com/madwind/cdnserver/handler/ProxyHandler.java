@@ -17,6 +17,7 @@ import reactor.core.publisher.Mono;
 
 import java.io.IOException;
 import java.net.URL;
+import java.util.Random;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -32,6 +33,8 @@ public class ProxyHandler {
     public Mono<ServerResponse> getFile(ServerRequest serverRequest) {
         String urlParam = serverRequest.queryParam("url")
                                        .orElseThrow();
+        String testParam = serverRequest.queryParam("test")
+                                        .orElse(null);
         logger.info("proxy: {}", urlParam);
         String fileName = urlParam.substring(urlParam.lastIndexOf('/') + 1);
 
@@ -86,12 +89,20 @@ public class ProxyHandler {
             dataBufferFlux = retrieve.bodyToFlux(DataBuffer.class);
         } else {
             mediaType = TS;
-            dataBufferFlux = retrieve.bodyToMono(byte[].class).flatMapMany(bytes -> {
-                if (bytes.length > 10 * 1024) {
-                    return Flux.just(DefaultDataBufferFactory.sharedInstance.wrap(bytes));
-                }
-                return Flux.empty();
-            });
+
+            if (testParam != null) {
+                byte[] bytes = new byte[500];
+                Random r = new Random();
+                r.nextBytes(bytes);
+                dataBufferFlux = Flux.just(DefaultDataBufferFactory.sharedInstance.wrap(bytes));
+            } else {
+                dataBufferFlux = retrieve.bodyToMono(byte[].class).flatMapMany(bytes -> {
+                    if (bytes.length > 10 * 1024) {
+                        return Flux.just(DefaultDataBufferFactory.sharedInstance.wrap(bytes));
+                    }
+                    return Flux.empty();
+                });
+            }
         }
 
         return dataBufferFlux.hasElements()
