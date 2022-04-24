@@ -118,10 +118,10 @@ public class ProxyHandler {
                                                                       p.getHeaders()
                                                                        .add(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*");
                                                                       p.getHeaders()
-                                                                       .add(HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS, "Download-Time");
+                                                                       .add(HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS, "Cache-Time");
                                                                       p.getHeaders()
-                                                                       .add("Download-Time", String.valueOf(Duration.between(start, LocalDateTime.now())
-                                                                                                                    .getSeconds()));
+                                                                       .add("Cache-Time", String.valueOf(Duration.between(start, LocalDateTime.now())
+                                                                                                                 .getNano()));
                                                                       return resp.writeWith(dataBufferFlux);
                                                                   }
                                                           );
