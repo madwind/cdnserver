@@ -4,15 +4,20 @@ import com.madwind.cdnserver.proxy.ProxyData;
 import com.madwind.cdnserver.proxy.TS;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.CacheControl;
 import org.springframework.http.ZeroCopyHttpOutputMessage;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Mono;
 
+import java.time.Duration;
+import java.time.ZonedDateTime;
+
 @Component
 public class ProxyHandler {
     Logger logger = LoggerFactory.getLogger(ProxyHandler.class);
+    final CacheControl cacheControl = CacheControl.maxAge(Duration.ofDays(365));
 
     public Mono<ServerResponse> getFile(ServerRequest serverRequest) {
         String urlParam = serverRequest.queryParam("url")
@@ -36,9 +41,10 @@ public class ProxyHandler {
                              .contentType(finalProxyData.getMediaType())
                              .body((p, a) -> {
                                          ZeroCopyHttpOutputMessage resp = (ZeroCopyHttpOutputMessage) p;
+                                         p.getHeaders().setLastModified(ZonedDateTime.now());
+                                         p.getHeaders().setCacheControl(cacheControl);
                                          return resp.writeWith(finalProxyData.getDataBufferFlux());
                                      }
                              );
-
     }
 }

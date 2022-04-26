@@ -10,6 +10,7 @@ public class TS implements ProxyData {
     private final String urlParam;
     private final MediaType mediaType = MediaType.parseMediaType("video/mp2t");
     private final int maxInMemorySize = 20 * 1024 * 1024;
+
     public TS(String urlParam) {
         this.urlParam = urlParam;
     }
