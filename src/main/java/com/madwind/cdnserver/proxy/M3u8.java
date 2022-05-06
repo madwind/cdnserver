@@ -17,13 +17,13 @@ import java.time.ZonedDateTime;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class M3U8 implements ProxyResponse {
+public class M3u8 implements ProxyResponse {
     private final String urlParam;
     private final MediaType mediaType = MediaType.parseMediaType("application/vnd.apple.mpegurl");
     private final int maxInMemorySize = 5 * 1024 * 1024;
     private static final Pattern KEYURI = Pattern.compile("(?<=URI=\").*?(?=\")");
 
-    public M3U8(String urlParam) {
+    public M3u8(String urlParam) {
         this.urlParam = urlParam;
     }
 

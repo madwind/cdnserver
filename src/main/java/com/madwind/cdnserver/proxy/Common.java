@@ -1,7 +1,6 @@
 package com.madwind.cdnserver.proxy;
 
 import org.springframework.core.io.buffer.DataBuffer;
-import org.springframework.http.MediaType;
 import org.springframework.http.ZeroCopyHttpOutputMessage;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.web.reactive.function.client.ExchangeStrategies;
@@ -13,19 +12,14 @@ import reactor.netty.http.client.HttpClient;
 import java.time.ZonedDateTime;
 import java.util.Objects;
 
-public class TS implements ProxyResponse {
+public class Common implements ProxyResponse {
     private final String urlParam;
-    private final MediaType mediaType = MediaType.parseMediaType("video/mp2t");
     private final int maxInMemorySize = 20 * 1024 * 1024;
 
     private long contentLength;
 
-    public TS(String urlParam) {
+    public Common(String urlParam) {
         this.urlParam = urlParam;
-    }
-
-    public MediaType getMediaType() {
-        return mediaType;
     }
 
     @Override
@@ -46,7 +40,6 @@ public class TS implements ProxyResponse {
                         .retrieve()
                         .toEntityFlux(DataBuffer.class)
                         .flatMap(fluxResponseEntity -> ServerResponse.ok()
-                                                                     .contentType(getMediaType())
                                                                      .headers(httpHeaders -> {
                                                                          httpHeaders.setLastModified(ZonedDateTime.now());
                                                                          httpHeaders.setCacheControl(ProxyResponse.CACHE_CONTROL);

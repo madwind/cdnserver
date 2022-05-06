@@ -1,7 +1,7 @@
 package com.madwind.cdnserver.handler;
 
-import com.madwind.cdnserver.proxy.ProxyResponse;
-import com.madwind.cdnserver.proxy.TS;
+import com.madwind.cdnserver.proxy.M3u8;
+import com.madwind.cdnserver.proxy.Common;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -19,14 +19,9 @@ public class ProxyHandler {
         logger.info("proxy: {}", urlParam);
         String fileName = urlParam.substring(urlParam.lastIndexOf('/') + 1);
         String extendName = fileName.substring(fileName.lastIndexOf('.') + 1);
-        try {
-            Class<?> proxyResponseClass = Class.forName("com.madwind.cdnserver.proxy." + extendName.toUpperCase());
-            ProxyResponse proxyResponse = (ProxyResponse) proxyResponseClass
-                    .getConstructor(String.class)
-                    .newInstance(urlParam);
-            return proxyResponse.handle();
-        } catch (ReflectiveOperationException e) {
-            return new TS(urlParam).handle();
+        if ("m3u8".equalsIgnoreCase(extendName)) {
+            return new M3u8(urlParam).handle();
         }
+        return new Common(urlParam).handle();
     }
 }
