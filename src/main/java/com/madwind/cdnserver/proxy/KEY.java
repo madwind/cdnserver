@@ -1,12 +1,18 @@
 package com.madwind.cdnserver.proxy;
 
 import org.springframework.core.io.buffer.DataBuffer;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.ZeroCopyHttpOutputMessage;
 import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
-public class KEY implements ProxyData {
+import java.time.ZonedDateTime;
+
+public class KEY implements ProxyResponse {
     private final String urlParam;
     private final MediaType mediaType = MediaType.parseMediaType("application/octet-stream");
     private final int maxInMemorySize = 1024 * 1024;
@@ -15,23 +21,31 @@ public class KEY implements ProxyData {
         this.urlParam = urlParam;
     }
 
-    @Override
     public MediaType getMediaType() {
         return mediaType;
     }
 
     @Override
-    public Flux<DataBuffer> getDataBufferFlux() {
-        return WebClient.builder()
-                        .baseUrl(urlParam)
-                        .exchangeStrategies(ExchangeStrategies.builder()
-                                                              .codecs(configurer ->
-                                                                      configurer.defaultCodecs()
-                                                                                .maxInMemorySize(maxInMemorySize)
-                                                              )
-                                                              .build())
-                        .build()
-                        .get()
-                        .retrieve().bodyToFlux(DataBuffer.class);
+    public Mono<ServerResponse> handle() {
+        Flux<DataBuffer> dataBufferFlux = WebClient.builder()
+                                                   .baseUrl(urlParam)
+                                                   .exchangeStrategies(ExchangeStrategies.builder()
+                                                                                         .codecs(configurer ->
+                                                                                                 configurer.defaultCodecs()
+                                                                                                           .maxInMemorySize(maxInMemorySize)
+                                                                                         )
+                                                                                         .build())
+                                                   .build()
+                                                   .get()
+                                                   .retrieve().bodyToFlux(DataBuffer.class);
+        return ServerResponse.ok()
+                             .contentType(getMediaType())
+                             .body((p, a) -> {
+                                         ZeroCopyHttpOutputMessage resp = (ZeroCopyHttpOutputMessage) p;
+                                         HttpHeaders headers = resp.getHeaders();
+                                         headers.setLastModified(ZonedDateTime.now());
+                                         return resp.writeWith(dataBufferFlux);
+                                     }
+                             );
     }
 }
