@@ -8,6 +8,7 @@ import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.server.ServerResponse;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.netty.http.client.HttpClient;
 
@@ -30,31 +31,29 @@ public class TS implements ProxyResponse {
 
     @Override
     public Mono<ServerResponse> handle() {
-        return WebClient.builder()
-                        .clientConnector(new ReactorClientHttpConnector(
-                                HttpClient.create().followRedirect(true)
-                        ))
-                        .baseUrl(urlParam)
-                        .exchangeStrategies(ExchangeStrategies.builder()
-                                                              .codecs(configurer ->
-                                                                      configurer.defaultCodecs()
-                                                                                .maxInMemorySize(maxInMemorySize)
-                                                              )
-                                                              .build())
-                        .build()
-                        .get()
-                        .exchangeToMono(clientResponse -> ServerResponse.ok()
-                                                                        .contentType(getMediaType())
-                                                                        .body((p, a) -> {
-                                                                                    ZeroCopyHttpOutputMessage resp = (ZeroCopyHttpOutputMessage) p;
-                                                                                    HttpHeaders headers = resp.getHeaders();
-                                                                                    headers.setLastModified(ZonedDateTime.now());
-                                                                                    headers.setCacheControl(ProxyResponse.CACHE_CONTROL);
-                                                                                    headers.setContentLength(clientResponse.headers()
-                                                                                                                           .contentLength()
-                                                                                                                           .orElse(0));
-                                                                                    return resp.writeWith(clientResponse.bodyToFlux(DataBuffer.class));
-                                                                                }
-                                                                        ));
+        Flux<DataBuffer> dataBufferFlux = WebClient.builder()
+                                                   .clientConnector(new ReactorClientHttpConnector(
+                                                           HttpClient.create().followRedirect(true)
+                                                   ))
+                                                   .baseUrl(urlParam)
+                                                   .exchangeStrategies(ExchangeStrategies.builder()
+                                                                                         .codecs(configurer ->
+                                                                                                 configurer.defaultCodecs()
+                                                                                                           .maxInMemorySize(maxInMemorySize)
+                                                                                         )
+                                                                                         .build())
+                                                   .build()
+                                                   .get()
+                                                   .retrieve().bodyToFlux(DataBuffer.class);
+        return ServerResponse.ok()
+                             .contentType(getMediaType())
+                             .body((p, a) -> {
+                                         ZeroCopyHttpOutputMessage resp = (ZeroCopyHttpOutputMessage) p;
+                                         HttpHeaders headers = resp.getHeaders();
+                                         headers.setLastModified(ZonedDateTime.now());
+                                         headers.setCacheControl(ProxyResponse.CACHE_CONTROL);
+                                         return resp.writeWith(dataBufferFlux);
+                                     }
+                             );
     }
 }
