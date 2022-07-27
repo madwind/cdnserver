@@ -3,8 +3,10 @@ package com.madwind.cdnserver.proxy;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DefaultDataBufferFactory;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ZeroCopyHttpOutputMessage;
+import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.server.ServerResponse;
@@ -44,6 +46,7 @@ public class M3u8 implements ProxyResponse {
                                                    .build()
                                                    .get()
                                                    .retrieve()
+                                                   .onStatus(HttpStatus::isError, ClientResponse::createException)
                                                    .bodyToMono(byte[].class)
                                                    .flatMapMany(bytes -> {
                                                        try {

@@ -1,16 +1,19 @@
 package com.madwind.cdnserver.proxy;
 
 import org.springframework.core.io.buffer.DataBuffer;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ZeroCopyHttpOutputMessage;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
+import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 import org.springframework.web.reactive.function.server.ServerResponse;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.netty.http.client.HttpClient;
 
 import java.time.ZonedDateTime;
-import java.util.Objects;
 
 public class Common implements ProxyResponse {
     private final String urlParam;
@@ -38,21 +41,29 @@ public class Common implements ProxyResponse {
                         .build()
                         .get()
                         .retrieve()
+                        .onStatus(HttpStatus::isError, ClientResponse::createException)
                         .toEntityFlux(DataBuffer.class)
-                        .flatMap(fluxResponseEntity -> ServerResponse.ok()
-                                                                     .headers(httpHeaders -> {
-                                                                         httpHeaders.setLastModified(ZonedDateTime.now());
-                                                                         httpHeaders.setCacheControl(ProxyResponse.CACHE_CONTROL);
-                                                                         httpHeaders.setContentType(fluxResponseEntity.getHeaders()
-                                                                                                                      .getContentType());
-                                                                         httpHeaders.setContentLength(fluxResponseEntity.getHeaders()
-                                                                                                                        .getContentLength());
-                                                                     })
-                                                                     .body((p, a) -> {
-                                                                                 ZeroCopyHttpOutputMessage resp = (ZeroCopyHttpOutputMessage) p;
-                                                                                 return resp.writeWith(Objects.requireNonNull(fluxResponseEntity.getBody()));
-                                                                             }
-                                                                     )
+                        .flatMap(fluxResponseEntity -> {
+                                    System.out.println(fluxResponseEntity.getStatusCode());
+                                    return ServerResponse.status(fluxResponseEntity.getStatusCode())
+                                                         .headers(httpHeaders -> {
+                                                             httpHeaders.setLastModified(ZonedDateTime.now());
+                                                             httpHeaders.setCacheControl(ProxyResponse.CACHE_CONTROL);
+                                                             httpHeaders.setContentType(fluxResponseEntity.getHeaders()
+                                                                                                          .getContentType());
+                                                             httpHeaders.setContentLength(fluxResponseEntity.getHeaders()
+                                                                                                            .getContentLength());
+                                                         })
+                                                         .body((p, a) -> {
+                                                                     ZeroCopyHttpOutputMessage resp = (ZeroCopyHttpOutputMessage) p;
+                                                                     if (fluxResponseEntity.getBody() != null) {
+
+                                                                         return resp.writeWith(fluxResponseEntity.getBody());
+                                                                     }
+                                                                     return resp.writeWith(Flux.empty());
+                                                                 }
+                                                         );
+                                }
                         );
     }
 }
