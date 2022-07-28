@@ -44,7 +44,6 @@ public class Common implements ProxyResponse {
                         .onStatus(HttpStatus::isError, ClientResponse::createException)
                         .toEntityFlux(DataBuffer.class)
                         .flatMap(fluxResponseEntity -> {
-                                    System.out.println(fluxResponseEntity.getStatusCode());
                                     return ServerResponse.status(fluxResponseEntity.getStatusCode())
                                                          .headers(httpHeaders -> {
                                                              httpHeaders.setLastModified(ZonedDateTime.now());
