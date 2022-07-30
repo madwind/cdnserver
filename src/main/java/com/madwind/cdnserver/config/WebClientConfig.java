@@ -19,7 +19,9 @@ public class WebClientConfig {
                 .forClient()
                 .trustManager(InsecureTrustManagerFactory.INSTANCE)
                 .build();
-        HttpClient httpClient = HttpClient.create().secure(t -> t.sslContext(sslContext));
+        HttpClient httpClient = HttpClient.create().followRedirect(true)
+                                          .secure(sslContextSpec -> sslContextSpec.sslContext(sslContext));
+
         return WebClient.builder().clientConnector(new ReactorClientHttpConnector(httpClient));
     }
 }

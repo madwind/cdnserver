@@ -3,14 +3,12 @@ package com.madwind.cdnserver.proxy;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ZeroCopyHttpOutputMessage;
-import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.netty.http.client.HttpClient;
 
 import java.time.ZonedDateTime;
 
@@ -30,9 +28,6 @@ public class Common implements ProxyResponse {
     @Override
     public Mono<ServerResponse> handle() {
         return webClientBuilder
-                .clientConnector(new ReactorClientHttpConnector(
-                        HttpClient.create().followRedirect(true)
-                ))
                 .baseUrl(urlParam)
                 .exchangeStrategies(ExchangeStrategies.builder()
                                                       .codecs(configurer ->
