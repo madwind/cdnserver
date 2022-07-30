@@ -29,9 +29,9 @@ public class ProxyHandler {
         String extendName = fileName.substring(fileName.lastIndexOf('.') + 1);
         Mono<ServerResponse> serverResponseMono;
         if ("m3u8".equalsIgnoreCase(extendName)) {
-            serverResponseMono = new M3u8(webClientBuilder,urlParam).handle();
+            serverResponseMono = new M3u8(webClientBuilder, urlParam).handle();
         } else {
-            serverResponseMono = new Common(webClientBuilder,urlParam).handle();
+            serverResponseMono = new Common(webClientBuilder, urlParam).handle();
         }
         return serverResponseMono.onErrorResume(throwable -> {
             logger.warn(throwable.getMessage());

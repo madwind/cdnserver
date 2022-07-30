@@ -18,8 +18,6 @@ public class Common implements ProxyResponse {
     private final String urlParam;
     private final int maxInMemorySize = 20 * 1024 * 1024;
 
-    private long contentLength;
-
     public Common(WebClient.Builder webClientBuilder, String urlParam) {
         this.webClientBuilder = webClientBuilder;
         this.urlParam = urlParam;
@@ -40,26 +38,24 @@ public class Common implements ProxyResponse {
                 .retrieve()
                 .onStatus(HttpStatus::isError, ClientResponse::createException)
                 .toEntityFlux(DataBuffer.class)
-                .flatMap(fluxResponseEntity -> {
-                            return ServerResponse.status(fluxResponseEntity.getStatusCode())
-                                                 .headers(httpHeaders -> {
-                                                     httpHeaders.setLastModified(ZonedDateTime.now());
-                                                     httpHeaders.setCacheControl(ProxyResponse.CACHE_CONTROL);
-                                                     httpHeaders.setContentType(fluxResponseEntity.getHeaders()
-                                                                                                  .getContentType());
-                                                     httpHeaders.setContentLength(fluxResponseEntity.getHeaders()
-                                                                                                    .getContentLength());
-                                                 })
-                                                 .body((p, a) -> {
-                                                             ZeroCopyHttpOutputMessage resp = (ZeroCopyHttpOutputMessage) p;
-                                                             if (fluxResponseEntity.getBody() != null) {
+                .flatMap(fluxResponseEntity -> ServerResponse.status(fluxResponseEntity.getStatusCode())
+                                                             .headers(httpHeaders -> {
+                                                                 httpHeaders.setLastModified(ZonedDateTime.now());
+                                                                 httpHeaders.setCacheControl(ProxyResponse.CACHE_CONTROL);
+                                                                 httpHeaders.setContentType(fluxResponseEntity.getHeaders()
+                                                                                                              .getContentType());
+                                                                 httpHeaders.setContentLength(fluxResponseEntity.getHeaders()
+                                                                                                                .getContentLength());
+                                                             })
+                                                             .body((p, a) -> {
+                                                                         ZeroCopyHttpOutputMessage resp = (ZeroCopyHttpOutputMessage) p;
+                                                                         if (fluxResponseEntity.getBody() != null) {
 
-                                                                 return resp.writeWith(fluxResponseEntity.getBody());
-                                                             }
-                                                             return resp.writeWith(Flux.empty());
-                                                         }
-                                                 );
-                        }
+                                                                             return resp.writeWith(fluxResponseEntity.getBody());
+                                                                         }
+                                                                         return resp.writeWith(Flux.empty());
+                                                                     }
+                                                             )
                 );
     }
 }
