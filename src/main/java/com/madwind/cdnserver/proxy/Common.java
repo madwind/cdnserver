@@ -14,17 +14,15 @@ import java.time.ZonedDateTime;
 
 public class Common implements ProxyResponse {
 
-    private final WebClient.Builder webClientBuilder;
     private final String urlParam;
     private final int maxInMemorySize = 20 * 1024 * 1024;
 
-    public Common(WebClient.Builder webClientBuilder, String urlParam) {
-        this.webClientBuilder = webClientBuilder;
+    public Common(String urlParam) {
         this.urlParam = urlParam;
     }
 
     @Override
-    public Mono<ServerResponse> handle() {
+    public Mono<ServerResponse> handle(WebClient.Builder webClientBuilder) {
         return webClientBuilder
                 .baseUrl(urlParam)
                 .exchangeStrategies(ExchangeStrategies.builder()

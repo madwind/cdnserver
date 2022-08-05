@@ -20,14 +20,12 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class M3u8 implements ProxyResponse {
-    private final WebClient.Builder webClientBuilder;
     private final String urlParam;
     private final MediaType mediaType = MediaType.parseMediaType("application/vnd.apple.mpegurl");
     private final int maxInMemorySize = 5 * 1024 * 1024;
     private static final Pattern KEYURI = Pattern.compile("(?<=URI=\").*?(?=\")");
 
     public M3u8(WebClient.Builder webClientBuilder, String urlParam) {
-        this.webClientBuilder = webClientBuilder;
         this.urlParam = urlParam;
     }
 
@@ -36,7 +34,7 @@ public class M3u8 implements ProxyResponse {
     }
 
     @Override
-    public Mono<ServerResponse> handle() {
+    public Mono<ServerResponse> handle(WebClient.Builder webClientBuilder) {
         Flux<DataBuffer> dataBufferFlux = webClientBuilder
                 .baseUrl(urlParam)
                 .exchangeStrategies(ExchangeStrategies.builder()
