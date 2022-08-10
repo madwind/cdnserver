@@ -58,7 +58,7 @@ public class ProxyHandler {
             serverResponseMono = new Common(webClient).handle(urlParam);
         }
         return serverResponseMono.onErrorResume(throwable -> {
-            logger.warn("proxy: {}, error: {}", urlParam, throwable.getMessage());
+            logger.warn(throwable.getMessage());
             if (throwable instanceof WebClientResponseException e) {
                 return ServerResponse.status(e.getStatusCode()).build();
             }
