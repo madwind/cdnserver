@@ -2,9 +2,12 @@ package com.madwind.cdnserver.handler;
 
 import com.madwind.cdnserver.proxy.Common;
 import com.madwind.cdnserver.proxy.M3u8;
+import io.netty.channel.ChannelOption;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
+import io.netty.handler.timeout.ReadTimeoutHandler;
+import io.netty.handler.timeout.WriteTimeoutHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -18,42 +21,42 @@ import reactor.core.publisher.Mono;
 import reactor.netty.http.client.HttpClient;
 
 import javax.net.ssl.SSLException;
+import java.time.Duration;
 
 @Component
 public class ProxyHandler {
     Logger logger = LoggerFactory.getLogger(ProxyHandler.class);
-    WebClient.Builder webClientBuilder;
+    WebClient webClient;
 
-    public ProxyHandler(WebClient.Builder webClientBuilder) {
-        this.webClientBuilder = webClientBuilder;
+    public ProxyHandler(WebClient.Builder webClientBuilder) throws SSLException {
+        SslContext sslContext = SslContextBuilder
+                .forClient()
+                .trustManager(InsecureTrustManagerFactory.INSTANCE)
+                .build();
+
+        HttpClient httpClient = HttpClient.create()
+                                          .followRedirect(true)
+                                          .responseTimeout(Duration.ofSeconds(60))
+                                          .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 30000)
+                                          .doOnConnected(conn -> conn
+                                                  .addHandlerLast(new ReadTimeoutHandler(10))
+                                                  .addHandlerLast(new WriteTimeoutHandler(10)))
+                                          .secure(sslContextSpec -> sslContextSpec.sslContext(sslContext));
+        this.webClient = webClientBuilder.clientConnector(new ReactorClientHttpConnector(httpClient)).build();
     }
 
     public Mono<ServerResponse> getFile(ServerRequest serverRequest) {
         String urlParam = serverRequest.queryParam("url")
                                        .orElseThrow();
         logger.info("proxy: {}", urlParam);
-        SslContext sslContext;
-        try {
-            sslContext = SslContextBuilder
-                    .forClient()
-                    .trustManager(InsecureTrustManagerFactory.INSTANCE)
-                    .build();
-        } catch (SSLException e) {
-            throw new RuntimeException(e);
-        }
-        HttpClient httpClient = HttpClient.create().followRedirect(true)
-                                          .secure(sslContextSpec -> sslContextSpec.sslContext(sslContext));
-
-        WebClient.Builder webClientBuilder = WebClient.builder()
-                                                      .clientConnector(new ReactorClientHttpConnector(httpClient));
 
         String fileName = urlParam.substring(urlParam.lastIndexOf('/') + 1);
         String extendName = fileName.substring(fileName.lastIndexOf('.') + 1);
         Mono<ServerResponse> serverResponseMono;
         if ("m3u8".equalsIgnoreCase(extendName)) {
-            serverResponseMono = new M3u8(webClientBuilder, urlParam).handle(webClientBuilder);
+            serverResponseMono = new M3u8(webClient).handle(urlParam);
         } else {
-            serverResponseMono = new Common(urlParam).handle(webClientBuilder);
+            serverResponseMono = new Common(webClient).handle(urlParam);
         }
         return serverResponseMono.onErrorResume(throwable -> {
             logger.warn(throwable.getMessage());
