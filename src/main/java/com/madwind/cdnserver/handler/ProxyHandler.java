@@ -10,6 +10,7 @@ import io.netty.handler.timeout.ReadTimeoutHandler;
 import io.netty.handler.timeout.WriteTimeoutHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.stereotype.Component;
@@ -48,8 +49,6 @@ public class ProxyHandler {
     public Mono<ServerResponse> getFile(ServerRequest serverRequest) {
         String urlParam = serverRequest.queryParam("url")
                                        .orElseThrow();
-        logger.info("proxy: {}", urlParam);
-
         String fileName = urlParam.substring(urlParam.lastIndexOf('/') + 1);
         String extendName = fileName.substring(fileName.lastIndexOf('.') + 1);
         Mono<ServerResponse> serverResponseMono;
@@ -59,12 +58,13 @@ public class ProxyHandler {
             serverResponseMono = new Common(webClient).handle(urlParam);
         }
         return serverResponseMono.onErrorResume(throwable -> {
-            logger.warn(throwable.getMessage());
+            logger.warn("proxy: {}, error: {}", urlParam, throwable.getMessage());
             if (throwable instanceof WebClientResponseException e) {
                 return ServerResponse.status(e.getStatusCode()).build();
             }
             return ServerResponse.status(HttpStatus.INTERNAL_SERVER_ERROR)
                                  .bodyValue(throwable.getMessage());
-        });
+        }).doOnNext(serverResponse -> logger.info("proxy: {}, size: {}", urlParam, serverResponse.headers()
+                                                                                                 .get(HttpHeaders.CONTENT_LENGTH)));
     }
 }
