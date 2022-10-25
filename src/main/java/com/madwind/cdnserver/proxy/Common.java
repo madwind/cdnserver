@@ -1,11 +1,11 @@
 package com.madwind.cdnserver.proxy;
 
 import org.springframework.core.io.buffer.DataBuffer;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ZeroCopyHttpOutputMessage;
 import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -18,20 +18,21 @@ public class Common implements ProxyResponse {
 
 
     private final WebClient webClient;
-    private final ServerRequest serverRequest;
+    private final HttpHeaders httpHeaders;
 
-    public Common(WebClient webClient, ServerRequest serverRequest) {
+    public Common(WebClient webClient, HttpHeaders httpHeaders) {
         this.webClient = webClient;
-        this.serverRequest = serverRequest;
+        this.httpHeaders = httpHeaders;
     }
 
     @Override
     public Mono<ServerResponse> handle(String urlParam) {
         return webClient.mutate()
                         .baseUrl(urlParam)
-                        .defaultHeaders(httpHeaders -> httpHeaders.setAll(this.serverRequest.headers()
-                                                                                            .asHttpHeaders()
-                                                                                            .toSingleValueMap()))
+                        .defaultHeaders(httpHeaders -> {
+                            httpHeaders.clear();
+                            httpHeaders.addAll(this.httpHeaders);
+                        })
                         .codecs(configurer ->
                                 configurer.defaultCodecs()
                                           .maxInMemorySize(maxInMemorySize)

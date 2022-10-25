@@ -20,9 +20,10 @@ import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Mono;
 import reactor.netty.http.client.HttpClient;
-import reactor.netty.transport.ProxyProvider;
 
 import javax.net.ssl.SSLException;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.time.Duration;
 
 @Component
@@ -43,9 +44,6 @@ public class ProxyHandler {
                                           .doOnConnected(conn -> conn
                                                   .addHandlerLast(new ReadTimeoutHandler(10))
                                                   .addHandlerLast(new WriteTimeoutHandler(10)))
-                                          .proxy(proxy -> proxy.type(ProxyProvider.Proxy.HTTP)
-                                                               .host("127.0.0.1")
-                                                               .port(8888))
                                           .secure(sslContextSpec -> sslContextSpec.sslContext(sslContext));
         this.webClient = webClientBuilder.clientConnector(new ReactorClientHttpConnector(httpClient)).build();
     }
@@ -56,13 +54,11 @@ public class ProxyHandler {
         String fileName = urlParam.substring(urlParam.lastIndexOf('/') + 1);
         String extendName = fileName.substring(fileName.lastIndexOf('.') + 1);
         Mono<ServerResponse> serverResponseMono;
-        System.out.println(serverRequest.headers()
-                                        .asHttpHeaders()
-                                        .toSingleValueMap());
+        HttpHeaders httpHeaders = buildRequestHeader(serverRequest, urlParam);
         if ("m3u8".equalsIgnoreCase(extendName)) {
-            serverResponseMono = new M3u8(webClient, serverRequest).handle(urlParam);
+            serverResponseMono = new M3u8(webClient, httpHeaders).handle(urlParam);
         } else {
-            serverResponseMono = new Common(webClient, serverRequest).handle(urlParam);
+            serverResponseMono = new Common(webClient, httpHeaders).handle(urlParam);
         }
         return serverResponseMono.onErrorResume(throwable -> {
             logger.warn(throwable.getMessage());
@@ -73,5 +69,22 @@ public class ProxyHandler {
                                  .bodyValue(throwable.getMessage());
         }).doOnNext(serverResponse -> logger.info("proxy: {}, size: {}", urlParam, serverResponse.headers()
                                                                                                  .get(HttpHeaders.CONTENT_LENGTH)));
+    }
+
+    private HttpHeaders buildRequestHeader(ServerRequest serverRequest, String urlParam) {
+        try {
+            String host = new URL(urlParam).getHost();
+            HttpHeaders httpHeaders = new HttpHeaders();
+            HttpHeaders requestHeaders = serverRequest.headers().asHttpHeaders();
+            requestHeaders.forEach((s, strings) -> {
+                if (!s.equalsIgnoreCase("Host") && !s.equalsIgnoreCase("X-Real-IP") && !s.equalsIgnoreCase("X-Forwarded-For")) {
+                    httpHeaders.addAll(s, strings);
+                }
+            });
+            httpHeaders.add("Host", host);
+            return httpHeaders;
+        } catch (MalformedURLException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
