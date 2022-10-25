@@ -20,6 +20,7 @@ import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Mono;
 import reactor.netty.http.client.HttpClient;
+import reactor.netty.transport.ProxyProvider;
 
 import javax.net.ssl.SSLException;
 import java.time.Duration;
@@ -42,6 +43,9 @@ public class ProxyHandler {
                                           .doOnConnected(conn -> conn
                                                   .addHandlerLast(new ReadTimeoutHandler(10))
                                                   .addHandlerLast(new WriteTimeoutHandler(10)))
+                                          .proxy(proxy -> proxy.type(ProxyProvider.Proxy.HTTP)
+                                                               .host("127.0.0.1")
+                                                               .port(8888))
                                           .secure(sslContextSpec -> sslContextSpec.sslContext(sslContext));
         this.webClient = webClientBuilder.clientConnector(new ReactorClientHttpConnector(httpClient)).build();
     }
@@ -52,10 +56,13 @@ public class ProxyHandler {
         String fileName = urlParam.substring(urlParam.lastIndexOf('/') + 1);
         String extendName = fileName.substring(fileName.lastIndexOf('.') + 1);
         Mono<ServerResponse> serverResponseMono;
+        System.out.println(serverRequest.headers()
+                                        .asHttpHeaders()
+                                        .toSingleValueMap());
         if ("m3u8".equalsIgnoreCase(extendName)) {
-            serverResponseMono = new M3u8(webClient).handle(urlParam);
+            serverResponseMono = new M3u8(webClient, serverRequest).handle(urlParam);
         } else {
-            serverResponseMono = new Common(webClient).handle(urlParam);
+            serverResponseMono = new Common(webClient, serverRequest).handle(urlParam);
         }
         return serverResponseMono.onErrorResume(throwable -> {
             logger.warn(throwable.getMessage());

@@ -5,6 +5,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ZeroCopyHttpOutputMessage;
 import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -17,15 +18,20 @@ public class Common implements ProxyResponse {
 
 
     private final WebClient webClient;
+    private final ServerRequest serverRequest;
 
-    public Common(WebClient webClient) {
+    public Common(WebClient webClient, ServerRequest serverRequest) {
         this.webClient = webClient;
+        this.serverRequest = serverRequest;
     }
 
     @Override
     public Mono<ServerResponse> handle(String urlParam) {
         return webClient.mutate()
                         .baseUrl(urlParam)
+                        .defaultHeaders(httpHeaders -> httpHeaders.setAll(this.serverRequest.headers()
+                                                                                            .asHttpHeaders()
+                                                                                            .toSingleValueMap()))
                         .codecs(configurer ->
                                 configurer.defaultCodecs()
                                           .maxInMemorySize(maxInMemorySize)

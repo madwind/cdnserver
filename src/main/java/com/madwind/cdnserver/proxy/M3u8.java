@@ -8,6 +8,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ZeroCopyHttpOutputMessage;
 import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -23,9 +24,11 @@ public class M3u8 implements ProxyResponse {
     private final int maxInMemorySize = 5 * 1024 * 1024;
     private static final Pattern KEYURI = Pattern.compile("(?<=URI=\").*?(?=\")");
     private final WebClient webClient;
+    private final ServerRequest serverRequest;
 
-    public M3u8(WebClient webClient) {
+    public M3u8(WebClient webClient, ServerRequest serverRequest) {
         this.webClient = webClient;
+        this.serverRequest = serverRequest;
     }
 
     public MediaType getMediaType() {
@@ -36,6 +39,9 @@ public class M3u8 implements ProxyResponse {
     public Mono<ServerResponse> handle(String urlParam) {
         Flux<DataBuffer> dataBufferFlux = webClient.mutate()
                                                    .baseUrl(urlParam)
+                                                   .defaultHeaders(httpHeaders -> httpHeaders.setAll(this.serverRequest.headers()
+                                                                                                                       .asHttpHeaders()
+                                                                                                                       .toSingleValueMap()))
                                                    .codecs(configurer ->
                                                            configurer.defaultCodecs()
                                                                      .maxInMemorySize(maxInMemorySize)
