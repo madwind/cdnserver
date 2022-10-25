@@ -82,6 +82,7 @@ public class ProxyHandler {
                 }
             });
             httpHeaders.add("Host", host);
+            System.out.println(httpHeaders.toSingleValueMap());
             return httpHeaders;
         } catch (MalformedURLException e) {
             throw new RuntimeException(e);
