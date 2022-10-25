@@ -78,7 +78,7 @@ public class ProxyHandler {
             HttpHeaders requestHeaders = serverRequest.headers().asHttpHeaders();
             requestHeaders.forEach((s, strings) -> {
                 String s1 = s.toLowerCase();
-                if (!s1.startsWith("cdn-loop") && !s1.startsWith("cf-") && !s1.startsWith("x-forwarded") && !s1.equalsIgnoreCase("Host") && !s1.equalsIgnoreCase("X-Real-IP")) {
+                if (!s1.startsWith("accept-encoding") && !s1.startsWith("cdn-loop") && !s1.startsWith("cf-") && !s1.startsWith("x-forwarded") && !s1.equalsIgnoreCase("Host") && !s1.equalsIgnoreCase("X-Real-IP")) {
                     httpHeaders.addAll(s, strings);
                 }
             });
