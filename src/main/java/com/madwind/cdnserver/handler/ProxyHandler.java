@@ -45,7 +45,7 @@ public class ProxyHandler {
                                           .doOnConnected(conn -> conn
                                                   .addHandlerLast(new ReadTimeoutHandler(10))
                                                   .addHandlerLast(new WriteTimeoutHandler(10)))
-                .proxy(typeSpec -> typeSpec.type(ProxyProvider.Proxy.HTTP).host("127.0.0.1").port(10809))
+//                .proxy(typeSpec -> typeSpec.type(ProxyProvider.Proxy.HTTP).host("127.0.0.1").port(10809))
                                           .secure(sslContextSpec -> sslContextSpec.sslContext(sslContext));
         this.webClient = webClientBuilder.clientConnector(new ReactorClientHttpConnector(httpClient)).build();
     }
