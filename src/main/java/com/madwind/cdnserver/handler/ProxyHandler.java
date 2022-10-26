@@ -1,7 +1,6 @@
 package com.madwind.cdnserver.handler;
 
 import com.madwind.cdnserver.proxy.Common;
-import com.madwind.cdnserver.proxy.M3u8;
 import io.netty.channel.ChannelOption;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
@@ -20,17 +19,19 @@ import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Mono;
 import reactor.netty.http.client.HttpClient;
-import reactor.netty.transport.ProxyProvider;
 
 import javax.net.ssl.SSLException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.List;
 
 @Component
 public class ProxyHandler {
     Logger logger = LoggerFactory.getLogger(ProxyHandler.class);
     WebClient webClient;
+    final List<String> IGNORE_HEADERS = Arrays.asList("host", "referer", "cdn-loop", "cf-", "x-");
 
     public ProxyHandler(WebClient.Builder webClientBuilder) throws SSLException {
         SslContext sslContext = SslContextBuilder
@@ -45,7 +46,6 @@ public class ProxyHandler {
                                           .doOnConnected(conn -> conn
                                                   .addHandlerLast(new ReadTimeoutHandler(10))
                                                   .addHandlerLast(new WriteTimeoutHandler(10)))
-//                .proxy(typeSpec -> typeSpec.type(ProxyProvider.Proxy.HTTP).host("127.0.0.1").port(10809))
                                           .secure(sslContextSpec -> sslContextSpec.sslContext(sslContext));
         this.webClient = webClientBuilder.clientConnector(new ReactorClientHttpConnector(httpClient)).build();
     }
@@ -53,15 +53,9 @@ public class ProxyHandler {
     public Mono<ServerResponse> getFile(ServerRequest serverRequest) {
         String urlParam = serverRequest.queryParam("url")
                                        .orElseThrow();
-        String fileName = urlParam.substring(urlParam.lastIndexOf('/') + 1);
-        String extendName = fileName.substring(fileName.lastIndexOf('.') + 1);
         Mono<ServerResponse> serverResponseMono;
         HttpHeaders httpHeaders = buildRequestHeader(serverRequest, urlParam);
-//        if ("m3u8".equalsIgnoreCase(extendName)) {
-//            serverResponseMono = new M3u8(webClient, httpHeaders).handle(urlParam);
-//        } else {
-            serverResponseMono = new Common(webClient, httpHeaders).handle(urlParam);
-//        }
+        serverResponseMono = new Common(webClient, httpHeaders).handle(urlParam);
         return serverResponseMono.onErrorResume(throwable -> {
             logger.warn(throwable.getMessage());
             if (throwable instanceof WebClientResponseException e) {
@@ -80,7 +74,7 @@ public class ProxyHandler {
             HttpHeaders requestHeaders = serverRequest.headers().asHttpHeaders();
             requestHeaders.forEach((s, strings) -> {
                 String s1 = s.toLowerCase();
-                if (!s1.startsWith("cdn-loop") && !s1.startsWith("cf-") && !s1.startsWith("x-forwarded") && !s1.equalsIgnoreCase("Host") && !s1.equalsIgnoreCase("X-Real-IP")) {
+                if (IGNORE_HEADERS.stream().noneMatch(s1::startsWith)) {
                     httpHeaders.addAll(s, strings);
                 }
             });

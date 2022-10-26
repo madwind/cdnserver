@@ -14,7 +14,6 @@ public class Common implements ProxyResponse {
 
     private final int maxInMemorySize = 20 * 1024 * 1024;
 
-
     private final WebClient webClient;
     private final HttpHeaders httpHeaders;
 
@@ -47,7 +46,6 @@ public class Common implements ProxyResponse {
                                                                      .body((p, a) -> {
                                                                                  ZeroCopyHttpOutputMessage resp = (ZeroCopyHttpOutputMessage) p;
                                                                                  if (fluxResponseEntity.getBody() != null) {
-
                                                                                      return resp.writeWith(fluxResponseEntity.getBody());
                                                                                  }
                                                                                  return resp.writeWith(Flux.empty());
