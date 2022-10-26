@@ -31,7 +31,7 @@ import java.util.List;
 public class ProxyHandler {
     Logger logger = LoggerFactory.getLogger(ProxyHandler.class);
     WebClient webClient;
-    final List<String> IGNORE_HEADERS = Arrays.asList("host", "referer", "cdn-loop", "cf-", "x-");
+    final List<String> IGNORE_HEADERS = Arrays.asList("host", "origin", "referer", "cdn-loop", "cf-", "x-");
 
     public ProxyHandler(WebClient.Builder webClientBuilder) throws SSLException {
         SslContext sslContext = SslContextBuilder
