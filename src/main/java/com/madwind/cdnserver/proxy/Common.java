@@ -10,8 +10,6 @@ import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.time.ZonedDateTime;
-
 public class Common implements ProxyResponse {
 
     private final int maxInMemorySize = 20 * 1024 * 1024;
@@ -44,12 +42,7 @@ public class Common implements ProxyResponse {
                         .toEntityFlux(DataBuffer.class)
                         .flatMap(fluxResponseEntity -> ServerResponse.status(fluxResponseEntity.getStatusCode())
                                                                      .headers(httpHeaders -> {
-                                                                         httpHeaders.setLastModified(ZonedDateTime.now());
-                                                                         httpHeaders.setCacheControl(ProxyResponse.CACHE_CONTROL);
-                                                                         httpHeaders.setContentType(fluxResponseEntity.getHeaders()
-                                                                                                                      .getContentType());
-                                                                         httpHeaders.setContentLength(fluxResponseEntity.getHeaders()
-                                                                                                                        .getContentLength());
+                                                                         httpHeaders.addAll(fluxResponseEntity.getHeaders());
                                                                      })
                                                                      .body((p, a) -> {
                                                                                  ZeroCopyHttpOutputMessage resp = (ZeroCopyHttpOutputMessage) p;
