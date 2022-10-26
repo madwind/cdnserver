@@ -3,6 +3,7 @@ package com.madwind.cdnserver.proxy;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ZeroCopyHttpOutputMessage;
 import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -37,7 +38,7 @@ public class Common implements ProxyResponse {
                         .build()
                         .get()
                         .retrieve()
-                        .onStatus(HttpStatus::isError, ClientResponse::createException)
+                        .onStatus(HttpStatusCode::isError, ClientResponse::createException)
                         .toEntityFlux(DataBuffer.class)
                         .flatMap(fluxResponseEntity -> ServerResponse.status(fluxResponseEntity.getStatusCode())
                                                                      .headers(httpHeaders -> {
