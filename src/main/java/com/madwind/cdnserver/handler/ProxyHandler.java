@@ -2,11 +2,15 @@ package com.madwind.cdnserver.handler;
 
 import com.madwind.cdnserver.proxy.Common;
 import io.netty.channel.ChannelOption;
+import io.netty.channel.socket.nio.NioDatagramChannel;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import io.netty.handler.timeout.ReadTimeoutHandler;
 import io.netty.handler.timeout.WriteTimeoutHandler;
+import io.netty.resolver.dns.DnsAddressResolverGroup;
+import io.netty.resolver.dns.DnsNameResolverBuilder;
+import io.netty.resolver.dns.SequentialDnsServerAddressStreamProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
@@ -21,6 +25,7 @@ import reactor.core.publisher.Mono;
 import reactor.netty.http.client.HttpClient;
 
 import javax.net.ssl.SSLException;
+import java.net.InetSocketAddress;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.time.Duration;
@@ -40,19 +45,27 @@ public class ProxyHandler {
                 .build();
 
         HttpClient httpClient = HttpClient.create()
-                                          .followRedirect(true)
-                                          .responseTimeout(Duration.ofSeconds(60))
-                                          .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 30000)
-                                          .doOnConnected(conn -> conn
-                                                  .addHandlerLast(new ReadTimeoutHandler(10))
-                                                  .addHandlerLast(new WriteTimeoutHandler(10)))
-                                          .secure(sslContextSpec -> sslContextSpec.sslContext(sslContext));
+                .followRedirect(true)
+                .resolver(
+                        new DnsAddressResolverGroup(
+                                new DnsNameResolverBuilder()
+                                        .channelType(NioDatagramChannel.class)
+                                        .nameServerProvider(
+                                                new SequentialDnsServerAddressStreamProvider(
+                                                        new InetSocketAddress("1.1.1.1", 53),
+                                                        new InetSocketAddress("8.8.8.8", 53)))))
+                .responseTimeout(Duration.ofSeconds(60))
+                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 30000)
+                .doOnConnected(conn -> conn
+                        .addHandlerLast(new ReadTimeoutHandler(10))
+                        .addHandlerLast(new WriteTimeoutHandler(10)))
+                .secure(sslContextSpec -> sslContextSpec.sslContext(sslContext));
         this.webClient = webClientBuilder.clientConnector(new ReactorClientHttpConnector(httpClient)).build();
     }
 
     public Mono<ServerResponse> getFile(ServerRequest serverRequest) {
         String urlParam = serverRequest.queryParam("url")
-                                       .orElseThrow();
+                .orElseThrow();
         Mono<ServerResponse> serverResponseMono;
         HttpHeaders httpHeaders = buildRequestHeader(serverRequest, urlParam);
         serverResponseMono = new Common(webClient, httpHeaders).handle(urlParam);
@@ -62,9 +75,9 @@ public class ProxyHandler {
                 return ServerResponse.status(e.getStatusCode()).build();
             }
             return ServerResponse.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                                 .bodyValue(throwable.getMessage());
+                    .bodyValue(throwable.getMessage());
         }).doOnNext(serverResponse -> logger.info("proxy: {}, size: {}", urlParam, serverResponse.headers()
-                                                                                                 .get(HttpHeaders.CONTENT_LENGTH)));
+                .get(HttpHeaders.CONTENT_LENGTH)));
     }
 
     private HttpHeaders buildRequestHeader(ServerRequest serverRequest, String urlParam) {
