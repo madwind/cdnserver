@@ -2,15 +2,11 @@ package com.madwind.cdnserver.handler;
 
 import com.madwind.cdnserver.proxy.Common;
 import io.netty.channel.ChannelOption;
-import io.netty.channel.socket.nio.NioDatagramChannel;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import io.netty.handler.timeout.ReadTimeoutHandler;
 import io.netty.handler.timeout.WriteTimeoutHandler;
-import io.netty.resolver.dns.DnsAddressResolverGroup;
-import io.netty.resolver.dns.DnsNameResolverBuilder;
-import io.netty.resolver.dns.SequentialDnsServerAddressStreamProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
@@ -25,7 +21,6 @@ import reactor.core.publisher.Mono;
 import reactor.netty.http.client.HttpClient;
 
 import javax.net.ssl.SSLException;
-import java.net.InetSocketAddress;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.time.Duration;
@@ -46,14 +41,6 @@ public class ProxyHandler {
 
         HttpClient httpClient = HttpClient.create()
                 .followRedirect(true)
-                .resolver(
-                        new DnsAddressResolverGroup(
-                                new DnsNameResolverBuilder()
-                                        .channelType(NioDatagramChannel.class)
-                                        .nameServerProvider(
-                                                new SequentialDnsServerAddressStreamProvider(
-                                                        new InetSocketAddress("1.1.1.1", 53),
-                                                        new InetSocketAddress("8.8.8.8", 53)))))
                 .responseTimeout(Duration.ofSeconds(60))
                 .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 30000)
                 .doOnConnected(conn -> conn
