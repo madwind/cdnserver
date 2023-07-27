@@ -5,7 +5,7 @@ plugins {
 }
 
 group = 'com.madwind.cdnserver'
-version = '0.0.1-SNAPSHOT'
+
 bootJar {
     archiveBaseName = 'cdnserver'
 }
