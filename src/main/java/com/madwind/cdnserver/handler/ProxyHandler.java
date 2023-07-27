@@ -46,6 +46,14 @@ public class ProxyHandler {
 
         HttpClient httpClient = HttpClient.create()
                 .followRedirect(true)
+                .resolver(
+                        new DnsAddressResolverGroup(
+                                new DnsNameResolverBuilder()
+                                        .channelType(NioDatagramChannel.class)
+                                        .nameServerProvider(
+                                                new SequentialDnsServerAddressStreamProvider(
+                                                        new InetSocketAddress("1.1.1.1", 53),
+                                                        new InetSocketAddress("8.8.8.8", 53)))))
                 .responseTimeout(Duration.ofSeconds(60))
                 .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 30000)
                 .doOnConnected(conn -> conn
