@@ -2,7 +2,6 @@ package com.madwind.cdnserver.proxy;
 
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ZeroCopyHttpOutputMessage;
 import org.springframework.web.reactive.function.client.ClientResponse;
@@ -26,32 +25,32 @@ public class Common implements ProxyResponse {
     @Override
     public Mono<ServerResponse> handle(String urlParam) {
         return webClient.mutate()
-                        .baseUrl(urlParam)
-                        .defaultHeaders(httpHeaders -> {
-                            httpHeaders.clear();
-                            httpHeaders.addAll(this.httpHeaders);
+                .baseUrl(urlParam)
+                .defaultHeaders(httpHeaders -> {
+                    httpHeaders.clear();
+                    httpHeaders.addAll(this.httpHeaders);
+                })
+                .codecs(configurer ->
+                        configurer.defaultCodecs()
+                                .maxInMemorySize(maxInMemorySize)
+                )
+                .build()
+                .get()
+                .retrieve()
+                .onStatus(HttpStatusCode::isError, ClientResponse::createException)
+                .toEntityFlux(DataBuffer.class)
+                .flatMap(fluxResponseEntity -> ServerResponse.status(fluxResponseEntity.getStatusCode())
+                        .headers(httpHeaders -> {
+                            httpHeaders.addAll(fluxResponseEntity.getHeaders());
                         })
-                        .codecs(configurer ->
-                                configurer.defaultCodecs()
-                                          .maxInMemorySize(maxInMemorySize)
+                        .body((p, a) -> {
+                                    ZeroCopyHttpOutputMessage resp = (ZeroCopyHttpOutputMessage) p;
+                                    if (fluxResponseEntity.getBody() != null) {
+                                        return resp.writeWith(fluxResponseEntity.getBody());
+                                    }
+                                    return resp.writeWith(Flux.empty());
+                                }
                         )
-                        .build()
-                        .get()
-                        .retrieve()
-                        .onStatus(HttpStatusCode::isError, ClientResponse::createException)
-                        .toEntityFlux(DataBuffer.class)
-                        .flatMap(fluxResponseEntity -> ServerResponse.status(fluxResponseEntity.getStatusCode())
-                                                                     .headers(httpHeaders -> {
-                                                                         httpHeaders.addAll(fluxResponseEntity.getHeaders());
-                                                                     })
-                                                                     .body((p, a) -> {
-                                                                                 ZeroCopyHttpOutputMessage resp = (ZeroCopyHttpOutputMessage) p;
-                                                                                 if (fluxResponseEntity.getBody() != null) {
-                                                                                     return resp.writeWith(fluxResponseEntity.getBody());
-                                                                                 }
-                                                                                 return resp.writeWith(Flux.empty());
-                                                                             }
-                                                                     )
-                        );
+                );
     }
 }

@@ -21,8 +21,8 @@ import reactor.core.publisher.Mono;
 import reactor.netty.http.client.HttpClient;
 
 import javax.net.ssl.SSLException;
-import java.net.MalformedURLException;
-import java.net.URL;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
@@ -69,7 +69,7 @@ public class ProxyHandler {
 
     private HttpHeaders buildRequestHeader(ServerRequest serverRequest, String urlParam) {
         try {
-            String host = new URL(urlParam).getHost();
+            String host = new URI(urlParam).getHost();
             HttpHeaders httpHeaders = new HttpHeaders();
             HttpHeaders requestHeaders = serverRequest.headers().asHttpHeaders();
             requestHeaders.forEach((s, strings) -> {
@@ -79,9 +79,8 @@ public class ProxyHandler {
                 }
             });
             httpHeaders.add("Host", host);
-            System.out.println(httpHeaders.toSingleValueMap());
             return httpHeaders;
-        } catch (MalformedURLException e) {
+        } catch (URISyntaxException e) {
             throw new RuntimeException(e);
         }
     }
