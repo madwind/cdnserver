@@ -30,7 +30,7 @@ jobs:
         distribution: 'oracle'
     - 
       name: Setup Gradle
-      uses: gradle/setup-gradle@v4
+      uses: gradle/actions/setup-gradle@v4
     - 
       name: Build with Gradle
       run: ./gradlew bootJar
