@@ -11,9 +11,7 @@ bootJar {
     archiveBaseName = 'cdnserver'
 }
 java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(24)
-    }
+    sourceCompatibility = '24'
 }
 idea {
     module {
