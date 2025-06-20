@@ -1,4 +1,4 @@
-package com.madwind.cdnserver;
+package com.madwind.downloadproxy;
 
 import org.springframework.boot.test.context.SpringBootTest;
 

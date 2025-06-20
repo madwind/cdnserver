@@ -1,4 +1,5 @@
-FROM openjdk:24-jdk-slim
+ARG JAVA_VERSION
+FROM openjdk:${JAVA_VERSION}-jdk-slim
 MAINTAINER madwind.cn@gmail.com
-COPY build/libs/cdnserver.jar /
-ENTRYPOINT exec java -jar /cdnserver.jar
+COPY build/libs/downloadproxy.jar /
+ENTRYPOINT exec java -jar /downloadproxy.jar

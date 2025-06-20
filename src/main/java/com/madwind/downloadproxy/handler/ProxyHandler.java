@@ -1,6 +1,6 @@
-package com.madwind.cdnserver.handler;
+package com.madwind.downloadproxy.handler;
 
-import com.madwind.cdnserver.proxy.Common;
+import com.madwind.downloadproxy.proxy.Common;
 import io.netty.channel.ChannelOption;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;

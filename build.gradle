@@ -1,14 +1,15 @@
 plugins {
     id 'java'
     id 'idea'
-    id 'org.springframework.boot' version '3.5.0'
+    id 'org.springframework.boot' version '3.5.2'
     id 'io.spring.dependency-management' version '1.1.7'
 }
 
-group = 'com.madwind.cdnserver'
+group = 'com.madwind'
+version = 1.0
 
 bootJar {
-    archiveBaseName = 'cdnserver'
+    archiveBaseName = 'downloadproxy'
 }
 java {
     toolchain {
@@ -33,4 +34,15 @@ dependencies {
 
 tasks.named('test') {
     useJUnitPlatform()
+}
+
+tasks.register('printVersion') {
+    doLast {
+        println project.version
+    }
+}
+tasks.register('printJavaVersion') {
+    doLast {
+        println java.toolchain.languageVersion.get().asInt()
+    }
 }

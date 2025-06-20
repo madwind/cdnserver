@@ -1,7 +1,7 @@
-package com.madwind.cdnserver.route;
+package com.madwind.downloadproxy.route;
 
 
-import com.madwind.cdnserver.handler.ProxyHandler;
+import com.madwind.downloadproxy.handler.ProxyHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;

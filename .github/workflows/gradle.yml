@@ -6,9 +6,6 @@ on:
       - 'master'
     tags:
       - 'v*'
-  pull_request:
-    branches:
-      - 'master'
       
 permissions:
   contents: read
@@ -19,38 +16,47 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - 
-      name: Checkout master
+    - name: Checkout master
       uses: actions/checkout@v4
-    - 
-      name: Set up JDK 24
+
+    - name: Get java version from Gradle
+      id: get_java_version
+      run: echo "JAVA_VERSION=$(./gradlew -q printJavaVersion)" >> $GITHUB_OUTPUT
+
+    - name: Set up java
       uses: actions/setup-java@v3
       with:
-        java-version: '24'
+        java-version: ${{ steps.get_java_version.outputs.JAVA_VERSION }}
         distribution: 'oracle'
-    - 
-      name: Setup Gradle
+
+    - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v4
-    - 
-      name: Build with Gradle
+
+    - name: Build with Gradle
       run: ./gradlew bootJar
-    -
-      name: Set up QEMU
+
+    - name: Get version from Gradle
+      id: get_version
+      run: echo "VERSION=$(./gradlew -q printVersion)" >> $GITHUB_OUTPUT
+
+    - name: Set up QEMU
       uses: docker/setup-qemu-action@v3
-    -
-      name: Set up Docker Buildx
+
+    - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
-    -
-      name: Login to DockerHub
+
+    - name: Login to DockerHub
       uses: docker/login-action@v3
       with:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
-    -
-      name: Build and push
+
+    - name: Build and push
       uses: docker/build-push-action@v6
       with:
         context: .
         platforms: linux/amd64,linux/arm64
         push: true
-        tags: madwind/cdnserver:latest
+        tags: madwind/downloadproxy:${{ steps.get_version.outputs.VERSION }}
+        build-args: |
+          JAVA_VERSION=${{ steps.get_java_version.outputs.JAVA_VERSION }}
