@@ -43,6 +43,6 @@ tasks.register('printVersion') {
 }
 tasks.register('printJavaVersion') {
     doLast {
-        println java.toolchain.languageVersion.get().asInt()
+        println java.toolchain.languageVersion.get()
     }
 }
