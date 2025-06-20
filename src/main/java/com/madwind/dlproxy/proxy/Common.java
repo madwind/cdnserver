@@ -1,4 +1,4 @@
-package com.madwind.downloadproxy.proxy;
+package com.madwind.dlproxy.proxy;
 
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.http.HttpHeaders;

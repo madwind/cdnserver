@@ -9,7 +9,7 @@ group = 'com.madwind'
 version = 1.0
 
 bootJar {
-    archiveBaseName = 'downloadproxy'
+    archiveBaseName = 'dlproxy'
 }
 java {
     toolchain {

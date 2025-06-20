@@ -1,4 +1,4 @@
-package com.madwind.downloadproxy;
+package com.madwind.dlproxy;
 
 import org.springframework.boot.test.context.SpringBootTest;
 

@@ -1,4 +1,4 @@
-package com.madwind.downloadproxy;
+package com.madwind.dlproxy;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
