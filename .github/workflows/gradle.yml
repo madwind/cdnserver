@@ -57,7 +57,7 @@ jobs:
         context: .
         platforms: linux/amd64,linux/arm64
         push: true
-        tags: madwind/downloadproxy:${{ steps.get_version.outputs.VERSION }}
+        tags: madwind/download-proxy:${{ steps.get_version.outputs.VERSION }}
         build-args: |
           JAVA_VERSION=${{ steps.get_java_version.outputs.JAVA_VERSION }}
           VERSION=${{ steps.get_version.outputs.VERSION }}
