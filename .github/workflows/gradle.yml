@@ -35,9 +35,6 @@ jobs:
     - name: Build with Gradle
       run: ./gradlew bootJar
 
-    - name: Build with Gradle2
-      run: ls build/libs/
-
     - name: Get version from Gradle
       id: get_version
       run: echo "VERSION=$(./gradlew -q printVersion)" >> $GITHUB_OUTPUT
@@ -63,3 +60,4 @@ jobs:
         tags: madwind/downloadproxy:${{ steps.get_version.outputs.VERSION }}
         build-args: |
           JAVA_VERSION=${{ steps.get_java_version.outputs.JAVA_VERSION }}
+          VERSION=${{ steps.get_version.outputs.VERSION }}
