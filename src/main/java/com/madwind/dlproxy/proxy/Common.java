@@ -3,6 +3,7 @@ package com.madwind.dlproxy.proxy;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatusCode;
+import org.springframework.http.ResponseEntity;
 import org.springframework.http.ZeroCopyHttpOutputMessage;
 import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -22,8 +23,7 @@ public class Common implements ProxyResponse {
         this.httpHeaders = httpHeaders;
     }
 
-    @Override
-    public Mono<ServerResponse> handle(String urlParam) {
+    public Mono<ResponseEntity<Flux<DataBuffer>>> getDataBuffer(String urlParam) {
         return webClient.mutate()
                 .baseUrl(urlParam)
                 .defaultHeaders(httpHeaders -> {
@@ -38,7 +38,13 @@ public class Common implements ProxyResponse {
                 .get()
                 .retrieve()
                 .onStatus(HttpStatusCode::isError, ClientResponse::createException)
-                .toEntityFlux(DataBuffer.class)
+                .toEntityFlux(DataBuffer.class);
+    }
+
+
+    @Override
+    public Mono<ServerResponse> handle(String urlParam) {
+        return getDataBuffer(urlParam)
                 .flatMap(fluxResponseEntity -> ServerResponse.status(fluxResponseEntity.getStatusCode())
                         .headers(httpHeaders -> {
                             httpHeaders.addAll(fluxResponseEntity.getHeaders());

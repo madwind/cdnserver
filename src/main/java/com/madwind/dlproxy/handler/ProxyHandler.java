@@ -1,5 +1,6 @@
 package com.madwind.dlproxy.handler;
 
+import com.madwind.dlproxy.TsDurationService;
 import com.madwind.dlproxy.proxy.Common;
 import io.netty.channel.ChannelOption;
 import io.netty.handler.ssl.SslContext;
@@ -9,6 +10,7 @@ import io.netty.handler.timeout.ReadTimeoutHandler;
 import io.netty.handler.timeout.WriteTimeoutHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
@@ -17,6 +19,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.netty.http.client.HttpClient;
 
@@ -26,14 +29,17 @@ import java.net.URISyntaxException;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 @Component
 public class ProxyHandler {
     Logger logger = LoggerFactory.getLogger(ProxyHandler.class);
     WebClient webClient;
     final List<String> IGNORE_HEADERS = Arrays.asList("host", "origin", "referer", "cdn-loop", "cf-", "x-");
+    final TsDurationService tsDurationService;
 
-    public ProxyHandler(WebClient.Builder webClientBuilder) throws SSLException {
+    public ProxyHandler(WebClient.Builder webClientBuilder, TsDurationService tsDurationService) throws SSLException {
+        this.tsDurationService = tsDurationService;
         SslContext sslContext = SslContextBuilder
                 .forClient()
                 .trustManager(InsecureTrustManagerFactory.INSTANCE)
@@ -52,10 +58,30 @@ public class ProxyHandler {
 
     public Mono<ServerResponse> getFile(ServerRequest serverRequest) {
         String urlParam = serverRequest.queryParam("url")
-                .orElseThrow();
+                .orElseThrow(() -> new IllegalArgumentException("Missing url"));
+
+        boolean lengthOnly = serverRequest.queryParam("lengthOnly")
+                .map("true"::equalsIgnoreCase)
+                .orElse(false);
+
         Mono<ServerResponse> serverResponseMono;
         HttpHeaders httpHeaders = buildRequestHeader(serverRequest, urlParam);
-        serverResponseMono = new Common(webClient, httpHeaders).handle(urlParam);
+        Common common = new Common(webClient, httpHeaders);
+        if (lengthOnly) {
+            return common.getDataBuffer(urlParam).flatMap(fluxResponseEntity -> {
+                Flux<DataBuffer> body = fluxResponseEntity.getBody();
+                if (body == null) {
+                    return ServerResponse.status(502).bodyValue("Empty TS stream");
+                }
+
+                return tsDurationService.getDurationFromFlux(body)
+                        .flatMap(duration -> ServerResponse.ok().bodyValue(
+                                Map.of("url", urlParam, "duration", duration)
+                        ));
+            });
+        }
+        serverResponseMono = common.handle(urlParam);
+
         return serverResponseMono.onErrorResume(throwable -> {
             logger.warn(throwable.getMessage());
             if (throwable instanceof WebClientResponseException e) {
