@@ -1,6 +1,6 @@
 package com.madwind.dlproxy.handler;
 
-import com.madwind.dlproxy.TsDurationService;
+import com.madwind.dlproxy.service.TsDurationService;
 import com.madwind.dlproxy.proxy.Common;
 import io.netty.channel.ChannelOption;
 import io.netty.handler.ssl.SslContext;
@@ -24,12 +24,14 @@ import reactor.core.publisher.Mono;
 import reactor.netty.http.client.HttpClient;
 
 import javax.net.ssl.SSLException;
+import java.io.Serializable;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 @Component
 public class ProxyHandler {
@@ -71,13 +73,15 @@ public class ProxyHandler {
             return common.getDataBuffer(urlParam).flatMap(fluxResponseEntity -> {
                 Flux<DataBuffer> body = fluxResponseEntity.getBody();
                 if (body == null) {
-                    return ServerResponse.status(502).bodyValue("Empty TS stream");
+                    return ServerResponse.status(502).bodyValue(urlParam + " Empty TS stream");
                 }
 
                 return tsDurationService.getDurationFromFlux(body)
-                        .flatMap(duration -> ServerResponse.ok().bodyValue(
-                                Map.of("url", urlParam, "duration", duration)
-                        ));
+                        .flatMap(duration -> {
+                            Map<String, Object> data = Map.of("url", urlParam, "duration", duration);
+                            logger.info(data.toString());
+                            return ServerResponse.ok().bodyValue(data);
+                        });
             });
         }
         serverResponseMono = common.handle(urlParam);
