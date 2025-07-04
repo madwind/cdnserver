@@ -1,6 +1,6 @@
 package com.madwind.dlproxy.handler;
 
-import com.madwind.dlproxy.service.TsDurationService;
+import com.madwind.dlproxy.service.TsStartTimeService;
 import com.madwind.dlproxy.proxy.Common;
 import io.netty.channel.ChannelOption;
 import io.netty.handler.ssl.SslContext;
@@ -24,24 +24,22 @@ import reactor.core.publisher.Mono;
 import reactor.netty.http.client.HttpClient;
 
 import javax.net.ssl.SSLException;
-import java.io.Serializable;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 @Component
 public class ProxyHandler {
     Logger logger = LoggerFactory.getLogger(ProxyHandler.class);
     WebClient webClient;
     final List<String> IGNORE_HEADERS = Arrays.asList("host", "origin", "referer", "cdn-loop", "cf-", "x-");
-    final TsDurationService tsDurationService;
+    final TsStartTimeService tsStartTimeService;
 
-    public ProxyHandler(WebClient.Builder webClientBuilder, TsDurationService tsDurationService) throws SSLException {
-        this.tsDurationService = tsDurationService;
+    public ProxyHandler(WebClient.Builder webClientBuilder, TsStartTimeService tsStartTimeService) throws SSLException {
+        this.tsStartTimeService = tsStartTimeService;
         SslContext sslContext = SslContextBuilder
                 .forClient()
                 .trustManager(InsecureTrustManagerFactory.INSTANCE)
@@ -62,7 +60,7 @@ public class ProxyHandler {
         String urlParam = serverRequest.queryParam("url")
                 .orElseThrow(() -> new IllegalArgumentException("Missing url"));
 
-        boolean lengthOnly = serverRequest.queryParam("lengthOnly")
+        boolean lengthOnly = serverRequest.queryParam("startTime")
                 .map("true"::equalsIgnoreCase)
                 .orElse(false);
 
@@ -76,9 +74,9 @@ public class ProxyHandler {
                     return ServerResponse.status(502).bodyValue(urlParam + " Empty TS stream");
                 }
 
-                return tsDurationService.getDurationFromFlux(body)
+                return tsStartTimeService.getStartTimeFromFlux(body)
                         .flatMap(duration -> {
-                            Map<String, Object> data = Map.of("url", urlParam, "duration", duration);
+                            Map<String, Object> data = Map.of("url", urlParam, "startTime", duration);
                             logger.info(data.toString());
                             return ServerResponse.ok().bodyValue(data);
                         });

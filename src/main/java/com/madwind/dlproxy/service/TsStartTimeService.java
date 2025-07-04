@@ -16,9 +16,9 @@ import java.nio.file.StandardOpenOption;
 import java.util.concurrent.TimeUnit;
 
 @Service
-public class TsDurationService {
+public class TsStartTimeService {
 
-    public Mono<Double> getDurationFromFlux(Flux<DataBuffer> dataFlux) {
+    public Mono<Double> getStartTimeFromFlux(Flux<DataBuffer> dataFlux) {
         return DataBufferUtils.join(dataFlux)
                 .map(dataBuffer -> {
                     byte[] data = new byte[dataBuffer.readableByteCount()];
@@ -26,10 +26,10 @@ public class TsDurationService {
                     DataBufferUtils.release(dataBuffer);
                     return data;
                 })
-                .flatMap(this::getDurationFromFile);
+                .flatMap(this::getStartTimeFromFile);
     }
 
-    public Mono<Double> getDurationFromFile(byte[] tsBytes) {
+    public Mono<Double> getStartTimeFromFile(byte[] tsBytes) {
         return Mono.fromCallable(() -> {
             Path tempFile = Files.createTempFile("tsfile-", ".ts");
             try {
@@ -38,7 +38,7 @@ public class TsDurationService {
                 ProcessBuilder pb = new ProcessBuilder(
                         "ffprobe",
                         "-v", "error",
-                        "-show_entries", "format=duration",
+                        "-show_entries", "format=start_time",
                         "-of", "default=noprint_wrappers=1:nokey=1",
                         tempFile.toAbsolutePath().toString()
                 );
@@ -50,7 +50,7 @@ public class TsDurationService {
                     String line = reader.readLine();
 
                     if (line == null || line.isBlank() || line.equals("N/A")) {
-                        throw new IllegalStateException("ffprobe failed to get duration from file: " + line);
+                        throw new IllegalStateException("ffprobe failed to get start_time from file: " + line);
                     }
 
                     return Double.parseDouble(line);
@@ -59,7 +59,7 @@ public class TsDurationService {
                     Files.deleteIfExists(tempFile);
                 }
             } catch (Exception e) {
-                throw new RuntimeException("Failed to probe duration", e);
+                throw new RuntimeException("Failed to probe start_time", e);
             }
         }).subscribeOn(Schedulers.boundedElastic());
     }
